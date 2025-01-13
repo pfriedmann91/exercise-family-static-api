@@ -41,26 +41,32 @@ def get_member(member_id):
 
 @app.route('/member', methods=['POST'])
 def add_member():
-    new_member = request.get_json()
-    if not new_member or not all(key in new_member for key in ["id", "first_name", "age", "lucky_numbers"]):
-        return jsonify({"error": "Faltan datos. Se requieren 'id', 'first_name', 'age' y 'lucky_numbers'."}), 400
-    
+    try:
+        new_member = request.get_json()
+        if not new_member or not all(key in new_member for key in ["id", "first_name", "age", "lucky_numbers"]):
+            raise ValueError("Faltan datos. Se requieren 'id', 'first_name', 'age' y 'lucky_numbers'.")
 
-    if not isinstance(new_member["id"], int):
-        return jsonify({"error": "id debe seer un número"}), 400
+        if not isinstance(new_member["id"], int):
+            raise TypeError("id debe ser un número entero.")
 
-    if not isinstance(new_member["first_name"], str):
-        return jsonify({"error": "first_name debe ser un txeto"}), 400
+        if not isinstance(new_member["first_name"], str):
+            raise TypeError("first_name debe ser un texto.")
 
+        if not isinstance(new_member["age"], int) or new_member["age"] <= 0:
+            raise ValueError("age debe ser un número entero positivo.")
 
-    if not isinstance(new_member["age"], int) or new_member["age"] <= 0:
-        return jsonify({"error": "age debe ser un número"}), 400
+        if not isinstance(new_member["lucky_numbers"], list) or not all(isinstance(num, int) for num in new_member["lucky_numbers"]):
+            raise TypeError("lucky_numbers debe ser una lista de números enteros.")
 
-    if not isinstance(new_member["lucky_numbers"], list) or not all(isinstance(num, int) for num in new_member["lucky_numbers"]):
-        return jsonify({"error": "lucky_numbers debe ser un o unos números enteros"}), 400
+        jackson_family.add_member(new_member)
+        return jsonify({"message": "miembro agregado"}), 200
 
-    jackson_family.add_member(new_member)
-    return jsonify({"message": "Miembro agregado"}), 200
+    except (ValueError, TypeError) as e:
+        return jsonify({"error": str(e)}), 400
+
+    except Exception as e:
+        return jsonify({"error": "error del servidor.", "detalle": str(e)}), 500
+
 
 
 @app.route('/member/<int:member_id>', methods=['DELETE'])
